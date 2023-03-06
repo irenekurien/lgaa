@@ -1,29 +1,54 @@
-import { createRef, useState } from 'react';
+import { createRef, useRef, useState } from 'react';
 import clsx from 'clsx';
-import { ChatBubble, AlwaysScrollToBottom } from 'components';
+import { ChatBubble, AlwaysScrollToBottom, Input, Button } from 'components';
 import { ChatHeader, ChatButtons } from 'containers';
 import { ChatMessageType, ChatQuestionType } from 'types';
+import { RiSendPlaneFill } from 'react-icons/ri';
+import { Ref } from 'components/InputField/Input';
+import axios from 'axios';
+
 
 export const ChatScreen = (): JSX.Element => {
 
     const chatWindow = createRef<HTMLDivElement>();
+    const inputRef = useRef<Ref>(null);
 
-    const [questions, setQuestions] = useState<Array<ChatQuestionType>>([{
-        text: "I'm having a dispute with my landlord over the return of my security deposit.",
-        responses: [{
-            type: 'Text',
-            value: "I see.",
-            linkText: "string",
-        }, {
-            type: 'Text',
-            value: "In most states, landlords are required to return a tenant's security deposit within a certain number of days after the tenant moves out. ",
-            linkText: "string",
-        }, {
-            type: 'Text',
-            value: "Have you tried discussing the issue with your landlord and trying to come to an agreement?",
-            linkText: "string",
-        }]
-    }]);
+    const handleClick = async () => {
+        if (inputRef.current) {
+            const data = inputRef.current.value;
+            console.log(data)
+
+            // push question to chat stack
+            await oneMsgAtATimeLoader(
+                [
+                    {
+                        type: 'Text',
+                        value: data,
+                        direction: 'right',
+                    },
+                ],
+                2000
+            );
+
+            oneMsgAtATimeLoader([{
+                type: 'Text',
+                value: "The relevent IPC Sections based on your case description are",
+                direction: 'left',
+                linkText: undefined,
+            }])
+
+            try {
+                const response = await axios.post('https://www.uknowwhoim.me/hosted/legal-project/query', data);
+                console.log(response.data);
+
+                addResponse(response.data.split(/\n+/));
+                inputRef.current.value = "";
+            } catch (error) {
+                console.log(error)
+            }
+        }
+    }
+
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [chatState, setChatState] = useState<Array<ChatMessageType>>([]);
     const [isMessageLoading, setIsMessageLoading] = useState(false);
@@ -49,7 +74,7 @@ export const ChatScreen = (): JSX.Element => {
         }]
     };
 
-    const oneMsgAtATimeLoader = (newMsgs: ChatMessageType[], delay = 500): Promise<void> =>
+    const oneMsgAtATimeLoader = (newMsgs: ChatMessageType[], delay = 750): Promise<void> =>
         new Promise<void>((resolve) => {
             if (newMsgs.length === 0) {
                 resolve();
@@ -66,57 +91,23 @@ export const ChatScreen = (): JSX.Element => {
             }, delay);
         });
 
-    const addResponse = async (index: number): Promise<void> => {
-        console.log(index)
-        if (questions[index]) {
-            setIsLoading(true);
-
-            // push question to chat stack
-            await oneMsgAtATimeLoader(
-                [
-                    {
-                        type: 'Text',
-                        value: questions[index].text,
-                        direction: 'right',
-                    },
-                ],
-                250
-            );
-
-            // show loading indicator after 750ms time
-            const msgLoadingTimeout = setTimeout(() => setIsMessageLoading(true), 750);
-            const msgs: ChatMessageType[] = [];
-            const resp = questions[index].responses
-            for (let i = 0; i < resp.length; i += 1) {
-                msgs.push({
-                    type: resp[i].type,
-                    value: resp[i].value,
-                    direction: 'left',
-                    linkText: resp[i].type === 'Link' ? resp[i].linkText : undefined,
-                });
-            }
-            // push responses to chat stack
-            await oneMsgAtATimeLoader(msgs, 250);
-            window.clearTimeout(msgLoadingTimeout);
-            setIsMessageLoading(false);
-            setIsLoading(false);
-            setQuestions([{
-                text: "Yes, but we haven't been able to resolve the issue.",
-                responses: [{
-                    type: 'Text',
-                    value: " If you're unable to reach an agreement with your landlord, you may need to consider taking legal action.",
-                    linkText: "string",
-                }, {
-                    type: 'Text',
-                    value: "Some options could include mediation or filing a lawsuit. It's always a good idea to try and resolve disputes amicably, but sometimes legal action may be necessary.",
-                    linkText: "string",
-                }, {
-                    type: 'Text',
-                    value: "Do you have any specific questions about the legal options available to you?",
-                    linkText: "string",
-                }]
-            }])
+    const addResponse = async (resp: Array<string>): Promise<void> => {
+        // show loading indicator after 750ms time
+        const msgLoadingTimeout = setTimeout(() => setIsMessageLoading(true));
+        const msgs: ChatMessageType[] = [];
+        for (let i = 1; i < resp.length; i += 1) {
+            msgs.push({
+                type: 'Text',
+                value: resp[i],
+                direction: 'left',
+                linkText: undefined,
+            });
         }
+        // push responses to chat stack
+        await oneMsgAtATimeLoader(msgs, 250);
+        window.clearTimeout(msgLoadingTimeout);
+        setIsMessageLoading(false);
+        setIsLoading(false);
     };
 
     return (
@@ -133,7 +124,7 @@ export const ChatScreen = (): JSX.Element => {
                     welcomeMessage?.responses.map((item, i) => {
                         return <ChatBubble {...item} direction="left" key={`msg-${item.value}-${i}`} />
                     }
-                )}
+                    )}
 
                 {/** Chat Messages */}
                 {chatState.map((item, i) => (
@@ -167,17 +158,18 @@ export const ChatScreen = (): JSX.Element => {
             {/** Chat Footer Action Buttons */}
             <div
                 className={clsx(
-                    'p-5 pr-0 animate-fade-in-up'
+                    'p-5 animate-fade-in-up'
                 )}
                 style={{
                     boxShadow: '0px -4px 16px 0px #0000000D',
                 }}
             >
-                <ChatButtons
+                {/* <ChatButtons
                     questions={questions}
                     isLoading={isLoading}
                     onClick={(i: number) => addResponse(i)}
-                />
+                /> */}
+                <Input iconAppend={RiSendPlaneFill} ref={inputRef} onClickIconAppend={handleClick} />
             </div>
         </div>
     );
