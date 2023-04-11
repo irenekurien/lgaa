@@ -6,8 +6,9 @@ export type ChatResponseType = {
 };
 
 export type ChatQuestionType = {
+    question?: string;
     text: string;
-    responses: Array<ChatResponseType>;
+    responses: Array<ChatResponseType> | string[];
     id?: number;
     isWelcome?: boolean;
 };

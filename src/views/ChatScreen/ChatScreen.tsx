@@ -1,8 +1,8 @@
-import { createRef, useRef, useState } from 'react';
+import { createRef, useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
 import { ChatBubble, AlwaysScrollToBottom, Input, Button } from 'components';
 import { ChatHeader, ChatButtons } from 'containers';
-import { ChatMessageType, ChatQuestionType } from 'types';
+import { ChatMessageType, ChatQuestionType, ChatResponseType } from 'types';
 import { RiSendPlaneFill } from 'react-icons/ri';
 import { Ref } from 'components/InputField/Input';
 import axios from 'axios';
@@ -12,6 +12,26 @@ export const ChatScreen = (): JSX.Element => {
 
     const chatWindow = createRef<HTMLDivElement>();
     const inputRef = useRef<Ref>(null);
+
+    const [faq, setFaq] = useState<ChatQuestionType[]>([]);
+
+    const updateFaq = (faq: ChatQuestionType[]) => {
+        setFaq(faq)
+    }
+
+    const handleFaqClick = async (i: number) => {
+        await oneMsgAtATimeLoader(
+            [
+                {
+                    type: 'Text',
+                    value: faq[i].question as string,
+                    direction: 'right',
+                },
+            ],
+            2000
+        );
+        addResponse(faq[i].responses as string[], 3000);
+    }
 
     const handleClick = async () => {
         if (inputRef.current) {
@@ -30,19 +50,26 @@ export const ChatScreen = (): JSX.Element => {
                 2000
             );
 
-            oneMsgAtATimeLoader([{
-                type: 'Text',
-                value: "The relevent IPC Sections based on your case description are",
-                direction: 'left',
-                linkText: undefined,
-            }])
-
             try {
                 const response = await axios.post('https://www.uknowwhoim.me/hosted/legal-project/query', data);
-                console.log(response.data);
-
-                addResponse(response.data.split(/\n+/));
                 inputRef.current.value = "";
+
+                if(response.status > 300)
+                    return;
+                const res = ["The relevent IPC Sections based on your case description are"];
+
+                for (let i = 0; i < response.data.length; i++) {
+                    const obj = response.data[i];
+
+                    res.push(`Section ${obj.section}`);
+                    res.push(`Section ${obj.section} states that ${obj.description.quotedText}`);
+                    res.push(obj.description.explanation);
+                    res.push(obj.description.examples);
+
+                    updateFaq(obj.faq[0]);
+                }
+
+                addResponse(res);
             } catch (error) {
                 console.log(error)
             }
@@ -90,12 +117,15 @@ export const ChatScreen = (): JSX.Element => {
                 return resolve();
             }, delay);
         });
-
-    const addResponse = async (resp: Array<string>): Promise<void> => {
+ 
+    const addResponse = async (resp: Array<string>, delay: number = 1000): Promise<void> => {
         // show loading indicator after 750ms time
         const msgLoadingTimeout = setTimeout(() => setIsMessageLoading(true));
         const msgs: ChatMessageType[] = [];
-        for (let i = 1; i < resp.length; i += 1) {
+        for (let i = 0; i < resp.length; i += 1) {
+            if (typeof resp[i] === "object" && resp[i].length === 0) {
+                continue;
+            }
             msgs.push({
                 type: 'Text',
                 value: resp[i],
@@ -104,7 +134,7 @@ export const ChatScreen = (): JSX.Element => {
             });
         }
         // push responses to chat stack
-        await oneMsgAtATimeLoader(msgs, 250);
+        await oneMsgAtATimeLoader(msgs, delay);
         window.clearTimeout(msgLoadingTimeout);
         setIsMessageLoading(false);
         setIsLoading(false);
@@ -122,7 +152,8 @@ export const ChatScreen = (): JSX.Element => {
                 {/** Welcome Messages */}
                 {welcomeMessage &&
                     welcomeMessage?.responses.map((item, i) => {
-                        return <ChatBubble {...item} direction="left" key={`msg-${item.value}-${i}`} />
+                        const k = typeof item !== "string" ? `msg-${item.value}-${i}` : "";
+                        return <ChatBubble {...item as ChatResponseType} direction="left" key={k} />
                     }
                     )}
 
@@ -164,11 +195,15 @@ export const ChatScreen = (): JSX.Element => {
                     boxShadow: '0px -4px 16px 0px #0000000D',
                 }}
             >
-                {/* <ChatButtons
-                    questions={questions}
-                    isLoading={isLoading}
-                    onClick={(i: number) => addResponse(i)}
-                /> */}
+                {faq.length !== 0 &&
+                    <ChatButtons
+                        key={``}
+                        questions={faq}
+                        isLoading={isLoading}
+                        onClick={(i: number) => handleFaqClick(i)}
+                    />                    
+                }
+                
                 <Input iconAppend={RiSendPlaneFill} ref={inputRef} onClickIconAppend={handleClick} />
             </div>
         </div>
