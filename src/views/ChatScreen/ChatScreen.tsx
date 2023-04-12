@@ -13,25 +13,93 @@ export const ChatScreen = (): JSX.Element => {
     const chatWindow = createRef<HTMLDivElement>();
     const inputRef = useRef<Ref>(null);
 
-    const [faq, setFaq] = useState<ChatQuestionType[]>([]);
+    // const [faq, setFaq] = useState<ChatQuestionType[]>([]);
+    const [sessionId, setSessionId] = useState<string>();
 
-    const updateFaq = (faq: ChatQuestionType[]) => {
-        setFaq(faq)
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [chatState, setChatState] = useState<Array<ChatMessageType>>([]);
+    const [isMessageLoading, setIsMessageLoading] = useState(false);
+
+    const handleHttpError = async (data: string) => {
+        if (typeof sessionId === "undefined") {
+
+            const res = ["The relevent IPC Sections based on your case description are"];
+
+            const response2 = await axios.post('https://www.uknowwhoim.me/hosted/legal-project/query', data)
+            if (response2.status > 300)
+                return;
+
+            for (let i = 0; i < response2.data.length; i++) {
+                const obj = response2.data[i];
+
+                res.push(`Section ${obj.section}`);
+                res.push(`Section ${obj.section} states that ${obj.description.quotedText}`);
+                res.push(obj.description.explanation);
+                res.push(obj.description.examples);
+            }
+
+            if (res.length > 1)
+                addResponse(res);
+        } else {
+            await oneMsgAtATimeLoader(
+                [
+                    {
+                        type: 'Text',
+                        value: "Soory, I'm having some issues at my end, please try again after sometime",
+                        direction: 'left',
+                    },
+                ],
+                2000
+            );
+        }
     }
 
-    const handleFaqClick = async (i: number) => {
-        await oneMsgAtATimeLoader(
-            [
-                {
-                    type: 'Text',
-                    value: faq[i].question as string,
-                    direction: 'right',
-                },
-            ],
-            2000
-        );
-        addResponse(faq[i].responses as string[], 3000);
+    const sendRequests = async (data: string) => {
+        try {
+            const res = await axios.post('https://www.uknowwhoim.me/hosted/legal-project/chat', data, {
+                params: {
+                    session_id: sessionId
+                }
+            });
+            console.log(sessionId)
+
+            setSessionId(res.data.session_id)
+
+            await oneMsgAtATimeLoader(
+                [
+                    {
+                        type: 'Text',
+                        value: res.data.message,
+                        direction: 'left',
+                    },
+                ],
+                2000
+            );
+
+        } catch (error) {
+            await handleHttpError(data)
+        }
+        return [];
     }
+
+
+    // const updateFaq = (faq: ChatQuestionType[]) => {
+    //     setFaq(faq)
+    // }
+
+    // const handleFaqClick = async (i: number) => {
+    //     await oneMsgAtATimeLoader(
+    //         [
+    //             {
+    //                 type: 'Text',
+    //                 value: faq[i].question as string,
+    //                 direction: 'right',
+    //             },
+    //         ],
+    //         2000
+    //     );
+    //     addResponse(faq[i].responses as string[], 3000);
+    // }
 
     const handleClick = async () => {
         if (inputRef.current) {
@@ -51,34 +119,26 @@ export const ChatScreen = (): JSX.Element => {
             );
 
             try {
-                const response = await axios.post('https://www.uknowwhoim.me/hosted/legal-project/query', data);
                 inputRef.current.value = "";
 
-                if(response.status > 300)
-                    return;
-                const res = ["The relevent IPC Sections based on your case description are"];
+                setChatState((chat) => [...chat,
+                {
+                    type: 'Text',
+                    value: "",
+                    direction: 'right',
+                },
+                ]);
+                setIsMessageLoading(true);
 
-                for (let i = 0; i < response.data.length; i++) {
-                    const obj = response.data[i];
+                await sendRequests(data)
 
-                    res.push(`Section ${obj.section}`);
-                    res.push(`Section ${obj.section} states that ${obj.description.quotedText}`);
-                    res.push(obj.description.explanation);
-                    res.push(obj.description.examples);
+                setIsMessageLoading(false);
 
-                    updateFaq(obj.faq[0]);
-                }
-
-                addResponse(res);
             } catch (error) {
                 console.log(error)
             }
         }
     }
-
-    const [isLoading, setIsLoading] = useState<boolean>(false);
-    const [chatState, setChatState] = useState<Array<ChatMessageType>>([]);
-    const [isMessageLoading, setIsMessageLoading] = useState(false);
 
     const welcomeMessage: ChatQuestionType = {
         text: "hi",
@@ -117,7 +177,7 @@ export const ChatScreen = (): JSX.Element => {
                 return resolve();
             }, delay);
         });
- 
+
     const addResponse = async (resp: Array<string>, delay: number = 1000): Promise<void> => {
         // show loading indicator after 750ms time
         const msgLoadingTimeout = setTimeout(() => setIsMessageLoading(true));
@@ -195,15 +255,15 @@ export const ChatScreen = (): JSX.Element => {
                     boxShadow: '0px -4px 16px 0px #0000000D',
                 }}
             >
-                {faq.length !== 0 &&
+                {/* {faq.length !== 0 &&
                     <ChatButtons
                         key={``}
                         questions={faq}
                         isLoading={isLoading}
                         onClick={(i: number) => handleFaqClick(i)}
                     />                    
-                }
-                
+                } */}
+
                 <Input iconAppend={RiSendPlaneFill} ref={inputRef} onClickIconAppend={handleClick} />
             </div>
         </div>

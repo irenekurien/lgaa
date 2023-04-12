@@ -33,7 +33,9 @@ export const ChatBubble = ({
     const renderChatMessage = useMemo(() => {
         switch (type) {
             case 'Text':
-                return value;
+                if (value.length !== 0)
+                    return value;
+                break;
             case 'Link':
                 return (
                     <button
@@ -82,16 +84,20 @@ export const ChatBubble = ({
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [linkText, value, type]);
+ 
 
-    return (
-        <div
-            className={msgCssClasses}
-            style={{
-                maxWidth: '78%',
-            }}
-        >
-            {/* Parse message to elements */}
-            {renderChatMessage}
-        </div>
-    );
+    if(typeof renderChatMessage !== "undefined") 
+        return (
+            <div
+                className={msgCssClasses}
+                style={{
+                    maxWidth: '78%',
+                }}
+            >
+                {/* Parse message to elements */}
+                {renderChatMessage}
+            </div>
+        );
+        
+    return <></>
 };
