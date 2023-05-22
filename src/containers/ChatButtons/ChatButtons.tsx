@@ -1,11 +1,11 @@
 import clsx from 'clsx';
 import { Button } from 'components';
 import React from 'react';
-import { Swiper, SwiperSlide, useSwiper } from 'swiper/react';
-import { ChatQuestionType } from 'types';
+// import { Swiper, SwiperSlide, useSwiper } from 'swiper/react';
+import { ChatFaqType, ChatQuestionType } from 'types';
 
 interface ChatButtonsProps {
-    questions: ChatQuestionType[];
+    questions: ChatFaqType[];
     isLoading: boolean;
     onClick: (index: number) => void;
 }
@@ -19,17 +19,17 @@ const ChatBtn = ({
 }: {
     index: number;
     isLastButton: boolean;
-    question: ChatQuestionType;
+    question: ChatFaqType;
     isLoading: boolean;
     onClick: (index: number) => void;
 }): JSX.Element => {
-    const swiper = useSwiper();
+    // const swiper = useSwiper();
     const onBtnClick = (): void => {
         // if (!isLastButton) swiper.slideTo(index + 1);
         onClick(index);
     };
 
-    console.log(question.question)
+    console.log(question.text)
 
     return (
         <Button
@@ -48,7 +48,7 @@ const ChatBtn = ({
                 margin: '0 4px 16px 4px',
             }}
         >
-            <span>{question.question}</span>
+            <span>{question.text}</span>
         </Button>
     );
 };

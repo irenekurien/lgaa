@@ -5,14 +5,18 @@ import { useMemo, useState } from 'react';
 import { ChatMessageType } from 'types';
 import { MessageLoadingIndicator } from 'components';
 
+
+
 export const ChatBubble = ({
     direction = 'left',
     type,
     value,
     linkText = 'Visit Link',
+    handleFeedback = () => { },
     onLoadStarted = () => { },
     onLoadCompleted = () => { },
 }: ChatMessageType & {
+    handleFeedback?: () => void;
     onLoadStarted?: () => void;
     onLoadCompleted?: () => void;
 }): JSX.Element => {
@@ -36,6 +40,20 @@ export const ChatBubble = ({
                 if (value.length !== 0)
                     return value;
                 break;
+            case 'Button':
+                return (
+                    <div className="flex items-center">
+                        <button
+                            className="flex items-centertext-green-500"
+                            onClick={handleFeedback}
+                        >
+                            Upvote
+                        </button>
+                        <button className="text-red-500" onClick={handleFeedback}>
+                            Downvote
+                        </button>
+                    </div>
+                )
             case 'Link':
                 return (
                     <button

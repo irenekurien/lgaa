@@ -1,5 +1,5 @@
 export type ChatResponseType = {
-    type: 'Text' | 'Image' | 'Video' | 'Link' | 'Loading';
+    type: 'Text' | 'Image' | 'Video' | 'Link' | 'Loading' | 'Button';
     value: string;
     linkText: string;
     id?: number;
@@ -19,3 +19,11 @@ export type ChatMessageType = {
     direction: 'left' | 'right';
     linkText?: string;
 };
+
+export type ChatFaqType = {
+    id?: number;
+    text: string;
+    isQuestion: boolean;
+    responses: Array<ChatFaqType>;
+    nextQuestion: ChatFaqType;
+}
