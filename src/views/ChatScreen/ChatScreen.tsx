@@ -52,7 +52,7 @@ export const ChatScreen = (): JSX.Element => {
 
             const res = ["The relevent IPC Sections based on your case description are"];
 
-            const response2 = await axios.post('https://www.uknowwhoim.me/hosted/legal-project/query', data)
+            const response2 = await axios.post('https://uknowwhoim.me/hosted/legal-project/query', data)
             if (response2.status > 300)
                 return;
 
@@ -82,8 +82,9 @@ export const ChatScreen = (): JSX.Element => {
     }
 
     const sendRequests = async (data: string) => {
+        console.log(data)
         try {
-            const res = await axios.post('https://www.uknowwhoim.me/hosted/legal-project/chat', data, {
+            const res = await axios.post('https://uknowwhoim.me/hosted/legal-project/chat', data, {
                 params: {
                     session_id: sessionId
                 }
@@ -223,8 +224,8 @@ export const ChatScreen = (): JSX.Element => {
                                         );
                                     }
                                 } else {
-                                    setIsFaqAsked(-1)
-                                    await sendRequests(data);
+                                    // setIsFaqAsked(-1)
+                                    // await sendRequests(data);
                                 }
                             }
                         }
@@ -254,7 +255,7 @@ export const ChatScreen = (): JSX.Element => {
             linkText: "string",
         }, {
             type: 'Text',
-            value: "I am very knowleguable and can help you with any legal questions or issues you might be dealing with..",
+            value: "I am very knowledgeable and can help you with any legal questions or issues you might be dealing with..",
             linkText: "string",
         }, {
             type: 'Text',
@@ -304,16 +305,15 @@ export const ChatScreen = (): JSX.Element => {
     };
 
     const handleVideoReq = async () => {
-        const res = await axios.post('https://www.uknowwhoim.me/hosted/legal-project/video', resData);
+        const res = await axios.post('http://localhost:8001/query', resData);
 
         console.log(res)
         const msgLoadingTimeout = setTimeout(() => setIsMessageLoading(true));
         const msgs: ChatMessageType[] = [];
 
-        const videos = res.data.message;
+        const videos = JSON.parse(res.data);
 
         for (let i = 0; i < videos.length; i ++) {
-
             msgs.push({
                 type: 'Video',
                 value: `https://www.youtube.com${videos[i]}`,
