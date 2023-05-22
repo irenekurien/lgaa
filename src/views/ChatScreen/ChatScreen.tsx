@@ -19,28 +19,28 @@ export const ChatScreen = (): JSX.Element => {
     const [faq, setFaq] = useState<ChatFaqType[]>([]);
     const [isFaqAsked, setIsFaqAsked] = useState<number>(-1);
     const [sessionId, setSessionId] = useState<string>();
+    const [resData, setResData] = useState<string>();
 
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [chatState, setChatState] = useState<Array<ChatMessageType>>([]);
     const [isMessageLoading, setIsMessageLoading] = useState(false);
 
-    const [isFeedbackSubmitted, setIsFeedbackSubmitted] = useState(false);
     const [isOverlayOpen, setIsOverlayOpen] = useState(false);
 
     const toggleOverlay = () => {
         setIsOverlayOpen(!isOverlayOpen);
     };
 
-    const { isLoggedIn } = useContext(AuthContext);
-
     const handleFeedback = () => {
-        if (isFeedbackSubmitted) {
+        const f = localStorage.getItem("isLoggedIn");
+        const feed = localStorage.getItem("feedback")
+        if (feed) {
             toast.success('Feedback already submitted', { autoClose: 2000 });
             return;
         }
-        if (isLoggedIn) {
+        if (f) {
             toast.success('Submitted your feedback', { autoClose: 2000 });
-            setIsFeedbackSubmitted(true)
+            localStorage.setItem("feedback", "true");
         } else {
             toggleOverlay()
         }
@@ -91,12 +91,24 @@ export const ChatScreen = (): JSX.Element => {
             console.log(sessionId)
 
             setSessionId(res.data.session_id)
+            setResData(res.data.message)
 
             await oneMsgAtATimeLoader(
                 [
                     {
                         type: 'Text',
                         value: res.data.message,
+                        direction: 'left',
+                    },
+                ],
+                2000
+            );
+
+            await oneMsgAtATimeLoader(
+                [
+                    {
+                        type: 'Request Video',
+                        value: '',
                         direction: 'left',
                     },
                 ],
@@ -118,53 +130,6 @@ export const ChatScreen = (): JSX.Element => {
             await handleHttpError(data)
         }
         return [];
-    }
-
-
-    const handleFaq = () => {
-        for (let i = 0; i < faq.length; i++) {
-            const item = faq[i];
-
-            if (item.isQuestion) {
-                console.log(item.text); 
-
-                if (item.responses && item.responses.length > 0) {
-                    // Iterate through the responses
-                    for (let j = 0; j < item.responses.length; j++) {
-                        const response = item.responses[j];
-
-                        console.log(response.text); // Print the response
-
-                        // Check if there is a next question
-                        if (response.nextQuestion) {
-                            // Access the next question
-                            const nextQuestion = response.nextQuestion;
-                            console.log(nextQuestion.text); // Print the next question
-
-                            // Continue accessing subsequent questions in a similar manner
-
-                            // Check if the next question has responses
-                            if (nextQuestion.responses && nextQuestion.responses.length > 0) {
-                                // Iterate through the responses
-                                for (let k = 0; k < nextQuestion.responses.length; k++) {
-                                    const nextResponse = nextQuestion.responses[k];
-
-                                    console.log(nextResponse.text); // Print the response
-
-                                    // Access the answer if available
-                                    if (nextResponse.answer) {
-                                        console.log(nextResponse.answer); // Print the answer
-                                    }
-
-                                    // Continue accessing subsequent questions or responses
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
     }
 
     const handleFaqClick = async (i: number) => {
@@ -212,35 +177,66 @@ export const ChatScreen = (): JSX.Element => {
 
                 const i = isFaqAsked;
 
+                console.log(isFaqAsked, faq);
+
                 if (isFaqAsked != -1) {
                     const item = faq[i];
 
-                    if(item.text == data) {
-                        if (item.isQuestion) {
-                            if (item.responses && item.responses.length > 0) {
-                                for (let j = 0; j < item.responses.length; j++) {
-                                    const response = item.responses[j];
-            
-                                    if(response.text == data)   {
-                                        const f = []
-                                        f.push(response.nextQuestion)
+                    console.log(item)
+
+                    if (item.is_question) {
+                        console.log(item.is_question)
+                        if (item.responses && item.responses.length > 0) {
+                            for (let j = 0; j < item.responses.length; j++) {
+                                const response = item.responses[j];
+                                console.log(response)
+
+                                if (response.text == data) {
+                                    const f = []
+                                    if (response.next_question) {
+                                        f.push(response.next_question)
                                         setFaq(f)
                                     }
+                                    console.log(f)
+                                    if (response.answer) {
+                                        await oneMsgAtATimeLoader(
+                                            [
+                                                {
+                                                    type: 'Text',
+                                                    value: response.answer,
+                                                    direction: 'left',
+                                                },
+                                            ],
+                                            2000
+                                        );
+                                    }
+                                    if (item.answer) {
+                                        await oneMsgAtATimeLoader(
+                                            [
+                                                {
+                                                    type: 'Text',
+                                                    value: item.answer,
+                                                    direction: 'left',
+                                                },
+                                            ],
+                                            2000
+                                        );
+                                    }
+                                } else {
+                                    setIsFaqAsked(-1)
+                                    await sendRequests(data);
                                 }
                             }
                         }
-                    } else {
-                        await sendRequests(data);
-                    } 
-                    setIsFaqAsked(-1);
-                }
-                else {
+                        
+                    }
+                } else {
+                    setIsFaqAsked(-1)
                     await sendRequests(data);
                 }
-
-                setIsMessageLoading(false);
-
-            } catch (error) {
+                setIsMessageLoading(false)
+            }
+            catch (error) {
                 console.log(error)
             }
         }
@@ -302,9 +298,35 @@ export const ChatScreen = (): JSX.Element => {
         // push responses to chat stack
         await oneMsgAtATimeLoader(msgs, delay);
         window.clearTimeout(msgLoadingTimeout);
-        setIsMessageLoading(false);
+        setIsMessageLoading(false);        // `https://www.youtube.com${}`
+
         setIsLoading(false);
     };
+
+    const handleVideoReq = async () => {
+        const res = await axios.post('https://www.uknowwhoim.me/hosted/legal-project/video', resData);
+
+        console.log(res)
+        const msgLoadingTimeout = setTimeout(() => setIsMessageLoading(true));
+        const msgs: ChatMessageType[] = [];
+
+        const videos = res.data.message;
+
+        for (let i = 0; i < videos.length; i ++) {
+
+            msgs.push({
+                type: 'Video',
+                value: `https://www.youtube.com${videos[i]}`,
+                direction: 'left',
+                linkText: undefined,
+            });
+        }
+        
+        await oneMsgAtATimeLoader(msgs, 2000);
+        window.clearTimeout(msgLoadingTimeout);
+        setIsMessageLoading(false);
+        setIsLoading(false);
+    }
 
     return (
         <div className="h-screen bg-chat-bg flex flex-col rounded-lg overflow-hidden relative">
@@ -336,6 +358,7 @@ export const ChatScreen = (): JSX.Element => {
                             setIsMessageLoading(false);
                         }}
                         handleFeedback={handleFeedback}
+                        handleVideoReq={handleVideoReq}
                     />
                 ))}
 
@@ -362,17 +385,17 @@ export const ChatScreen = (): JSX.Element => {
                     boxShadow: '0px -4px 16px 0px #0000000D',
                 }}
             >
-                {faq.length !== 0 &&
+                {faq?.length !== 0 &&
                     <ChatButtons
                         key={``}
                         questions={faq}
                         isLoading={isLoading}
                         onClick={(i: number) => handleFaqClick(i)}
-                    />                    
+                    />
                 }
 
                 <Input iconAppend={RiSendPlaneFill} ref={inputRef} onClickIconAppend={handleClick} />
-                {isOverlayOpen && <SignInUp />}
+                {isOverlayOpen && <SignInUp closeOverlay={toggleOverlay} />}
             </div>
         </div>
     );

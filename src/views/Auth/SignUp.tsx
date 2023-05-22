@@ -1,10 +1,12 @@
 import React, { useContext, useState } from 'react';
 import { Input, Button } from 'components';
 import { AuthContext } from 'context';
-import "./overlay.css"
 
+type params = {
+  closeOverlay: () => void
+}
 
-const SignInUp = () => {
+const SignInUp = ({closeOverlay}: params) => {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -16,6 +18,7 @@ const SignInUp = () => {
 
     const handleSignUp = () => {
         login()
+        closeOverlay()
     };
   
     return (

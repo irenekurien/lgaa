@@ -75,7 +75,7 @@ const LawyerList = () => {
       </div>
       <div>
         {filteredLawyers.map((lawyer) => (
-          <LawyerCard key={lawyer.id} areaOfWork={filter.areaOfWork} place={filter.place} name={filter.name} />
+          <LawyerCard key={lawyer.id} areaOfWork={filter.areaOfWork} place={filter.place} name={filter.name} contactInfo={''} experience={''} education={''} reviews={[]} ratings={[]} />
         ))}
       </div>
     </div>

@@ -15,6 +15,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const login = () => {
     setIsLoggedIn(true);
+    localStorage.setItem("isLoggedIn", "true")
+    console.log(isLoggedIn);
   };
 
   const logout = () => {

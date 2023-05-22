@@ -12,10 +12,12 @@ export const ChatBubble = ({
     type,
     value,
     linkText = 'Visit Link',
+    handleVideoReq = () => { },
     handleFeedback = () => { },
     onLoadStarted = () => { },
     onLoadCompleted = () => { },
 }: ChatMessageType & {
+    handleVideoReq?: () => void;
     handleFeedback?: () => void;
     onLoadStarted?: () => void;
     onLoadCompleted?: () => void;
@@ -44,7 +46,7 @@ export const ChatBubble = ({
                 return (
                     <div className="flex items-center">
                         <button
-                            className="flex items-centertext-green-500"
+                            className="flex items-center text-green-500 mr-4"
                             onClick={handleFeedback}
                         >
                             Upvote
@@ -54,6 +56,15 @@ export const ChatBubble = ({
                         </button>
                     </div>
                 )
+            case 'Request Video':
+                    return (
+                        <button
+                            className="flex items-center text-green-500 mr-4"
+                            onClick={handleVideoReq}
+                        >
+                            Request Video
+                        </button>
+                    );
             case 'Link':
                 return (
                     <button
