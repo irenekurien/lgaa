@@ -47,9 +47,14 @@ const SignInUp = ({closeOverlay}: params) => {
           <Button onClick={handleSignUp} className="w-full">
           {isSignIn ? "Sign In" : "Sign Up"}
           </Button>
-          <Button onClick={() => setIsSignIn(!isSignIn)} className="w-full" variant='text'>
-          {isSignIn ? "Sign Up" : "Sign In"}
+          <div className='flex m-2'>
+            <p className='text-sm'>Don't have an account?</p>
+            <Button onClick={() => setIsSignIn(!isSignIn)} className="w-full" variant='text'>
+            {isSignIn ? "Sign Up" : "Sign In"}
           </Button>
+          <p className='text-bold text-red-500' onClick={closeOverlay}>X</p>
+          </div>
+          
         </div>
       </div>
     );

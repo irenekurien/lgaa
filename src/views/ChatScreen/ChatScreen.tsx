@@ -144,6 +144,18 @@ export const ChatScreen = (): JSX.Element => {
             2000
         );
         setIsFaqAsked(i)
+        if (faq[i].answer) {
+            await oneMsgAtATimeLoader(
+                [
+                    {
+                        type: 'Text',
+                        value: faq[i]?.answer as string,
+                        direction: 'left',
+                    },
+                ],
+                2000
+            );
+        }
     }
 
     const handleClick = async () => {
@@ -162,7 +174,7 @@ export const ChatScreen = (): JSX.Element => {
                 ],
                 2000
             );
-
+            let flag = false;
             try {
                 inputRef.current.value = "";
 
@@ -191,48 +203,45 @@ export const ChatScreen = (): JSX.Element => {
                                 const response = item.responses[j];
                                 console.log(response)
 
-                                if (response.text == data) {
-                                    const f = []
-                                    if (response.next_question) {
-                                        f.push(response.next_question)
-                                        setFaq(f)
-                                    }
-                                    console.log(f)
+                                console.log(response.text, data)
+                                if (response.text === data) {
                                     if (response.answer) {
                                         await oneMsgAtATimeLoader(
                                             [
                                                 {
                                                     type: 'Text',
-                                                    value: response.answer,
+                                                    value: response?.answer as string,
                                                     direction: 'left',
                                                 },
                                             ],
-                                            2000
+                                            
                                         );
                                     }
-                                    if (item.answer) {
-                                        await oneMsgAtATimeLoader(
-                                            [
-                                                {
-                                                    type: 'Text',
-                                                    value: item.answer,
-                                                    direction: 'left',
-                                                },
-                                            ],
-                                            2000
-                                        );
+                                    const f = []
+                                    if (response.next_question) {
+                                        f.push(response.next_question)
+                                        setFaq(f)
                                     }
+                                    flag=false;
+                                    break;
                                 } else {
-                                    setIsFaqAsked(-1)
-                                    await sendRequests(data);
-                                }
+                                    console.log("u")
+                                    flag = true;
+                                }   
                             }
+                        } else {
+                            flag = true;
                         }
-                        
-                    }
+                    } 
                 } else {
-                    setIsFaqAsked(-1)
+                    flag = true;
+                }
+                console.log(flag)
+                if(flag) {
+                    setIsFaqAsked(-1);
+                    setFaq([]);
                     await sendRequests(data);
+                    flag = false;
                 }
                 setIsMessageLoading(false)
             }
@@ -312,7 +321,7 @@ export const ChatScreen = (): JSX.Element => {
 
         const videos = res.data.message;
 
-        for (let i = 0; i < videos.length; i ++) {
+        for (let i = 0; i < videos.length; i++) {
 
             msgs.push({
                 type: 'Video',
@@ -321,7 +330,7 @@ export const ChatScreen = (): JSX.Element => {
                 linkText: undefined,
             });
         }
-        
+
         await oneMsgAtATimeLoader(msgs, 2000);
         window.clearTimeout(msgLoadingTimeout);
         setIsMessageLoading(false);
@@ -385,7 +394,7 @@ export const ChatScreen = (): JSX.Element => {
                     boxShadow: '0px -4px 16px 0px #0000000D',
                 }}
             >
-                {faq?.length !== 0 &&
+                {(faq?.length ?? 0) !== 0 &&
                     <ChatButtons
                         key={``}
                         questions={faq}
