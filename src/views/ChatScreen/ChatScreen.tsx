@@ -385,7 +385,7 @@ export const ChatScreen = (): JSX.Element => {
                     boxShadow: '0px -4px 16px 0px #0000000D',
                 }}
             >
-                {faq?.length !== 0 &&
+                {(faq?.length ?? 0)!== 0 &&
                     <ChatButtons
                         key={``}
                         questions={faq}
