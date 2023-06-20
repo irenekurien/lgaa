@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 const LandingPage = () => {
   return (
     <div className="flex flex-col justify-center items-center h-screen bg-gray-100">
-      <h1 className="text-4xl font-bold text-center mb-8">Welcome to LegalBot</h1>
+      <h1 className="text-4xl font-bold text-center mb-8">Welcome to Legal Bot</h1>
       <p className="text-xl text-gray-600 text-center mb-8">
         A context-driven AI chat system that helps you understand law and find the right lawyer.
       </p>
@@ -14,7 +14,7 @@ const LandingPage = () => {
         </Link>
       </div>
       <div className="flex justify-center mb-8">
-        <Link to="/lawyer-profile" className="mr-4 text-blue-500 hover:text-blue-600">
+        <Link to="/lawyer" className="mr-4 text-blue-500 hover:text-blue-600">
           Create Lawyer Profile
         </Link>
         <Link to="/faq" className="text-blue-500 hover:text-blue-600">

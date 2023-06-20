@@ -1,25 +1,34 @@
-import { createRef, useContext, useRef, useState } from 'react';
+import { createRef, useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
-import { ChatBubble, AlwaysScrollToBottom, Input, Button } from 'components';
-import { ChatHeader, ChatButtons } from 'containers';
-import { ChatFaqType, ChatMessageType, ChatQuestionType, ChatResponseType } from 'types';
-import { RiSendPlaneFill } from 'react-icons/ri';
+import { AudioRecorder, useAudioRecorder } from 'react-audio-voice-recorder';
+import { ChatBubble, AlwaysScrollToBottom, Input } from 'components';
+import { ChatHeader, ChatButtons, PreviousSessions } from 'containers';
+import { ChatFaqType, ChatMessageType, ChatResponseType } from 'types';
 import { Ref } from 'components/InputField/Input';
 import axios from 'axios';
-import { AuthContext } from 'context';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { SignInUp } from 'views/Auth';
+import { RoundButton } from 'components/RoundButton';
+import { welcomeMessage, URL } from 'const/constants';
+import { axiosInstance } from 'config';
+import NProgress from 'nprogress';
+import 'nprogress/nprogress.css';
 
 export const ChatScreen = (): JSX.Element => {
 
     const chatWindow = createRef<HTMLDivElement>();
     const inputRef = useRef<Ref>(null);
 
+    const [message, setMessage] = useState('');
+
     const [faq, setFaq] = useState<ChatFaqType[]>([]);
     const [isFaqAsked, setIsFaqAsked] = useState<number>(-1);
     const [sessionId, setSessionId] = useState<string>();
     const [resData, setResData] = useState<string>();
+    const [isSignedIn, setIsSignedIn] = useState<boolean>(false);
+    const [updatePreviousSessions, setUpdatePreviousSessions] = useState<number>(0);
+
 
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [chatState, setChatState] = useState<Array<ChatMessageType>>([]);
@@ -27,12 +36,99 @@ export const ChatScreen = (): JSX.Element => {
 
     const [isOverlayOpen, setIsOverlayOpen] = useState(false);
 
+    useEffect(() => {
+        if (isSignedIn) {
+            setUpdatePreviousSessions(updatePreviousSessions + 1)
+        }
+    }, [isSignedIn])
+
+    const handleMessageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setMessage(event.target.value);
+    };
+
     const toggleOverlay = () => {
         setIsOverlayOpen(!isOverlayOpen);
     };
 
+    const recorderControls = useAudioRecorder(
+        {
+            noiseSuppression: true,
+            echoCancellation: true,
+        },
+        (err) => console.table(err) // onNotAllowedOrFound
+    );
+
+    const addAudioElement = async (blob: Blob) => {
+        await oneMsgAtATimeLoader(
+            [
+                {
+                    type: 'Audio',
+                    value: blob,
+                    direction: 'right',
+                },
+            ],
+            2000
+        );
+    };
+
+    const handleAudioData = async (recordedData: Blob) => {
+        try {
+            await addAudioElement(recordedData);
+            if (recordedData) {
+                const formData = new FormData();
+                formData.append('file', recordedData, 'recording.mp3');
+
+                const res = await axiosInstance.post(`chat-audio`, formData, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data',
+                    },
+                });
+                await oneMsgAtATimeLoader(
+                    [
+                        {
+                            type: 'Text',
+                            value: res.data.message,
+                            direction: 'left',
+                        },
+                    ],
+                    2000
+                );
+                setSessionId(res.data.session_id)
+                setResData(res.data.message)
+                setVideoFeedbackButtons();
+            }
+        } catch (error) {
+            toast.error('Unable to send audio', { autoClose: 2000 });
+        }
+    };
+
+    const setVideoFeedbackButtons = async () => {
+        console.log("j")
+        await oneMsgAtATimeLoader(
+            [
+                {
+                    type: 'Request Video',
+                    value: '',
+                    direction: 'left',
+                },
+            ],
+            2000
+        );
+
+        await oneMsgAtATimeLoader(
+            [
+                {
+                    type: 'Button',
+                    value: '',
+                    direction: 'left',
+                },
+            ],
+            2000
+        );
+    }
+
     const handleFeedback = () => {
-        const f = localStorage.getItem("isLoggedIn");
+        const f = localStorage.getItem("token");
         const feed = localStorage.getItem("feedback")
         if (feed) {
             toast.success('Feedback already submitted', { autoClose: 2000 });
@@ -52,7 +148,7 @@ export const ChatScreen = (): JSX.Element => {
 
             const res = ["The relevent IPC Sections based on your case description are"];
 
-            const response2 = await axios.post('https://www.uknowwhoim.me/hosted/legal-project/query', data)
+            const response2 = await axiosInstance.post(`query`, data)
             if (response2.status > 300)
                 return;
 
@@ -83,7 +179,7 @@ export const ChatScreen = (): JSX.Element => {
 
     const sendRequests = async (data: string) => {
         try {
-            const res = await axios.post('https://www.uknowwhoim.me/hosted/legal-project/chat', data, {
+            const res = await axiosInstance.post('chat', data, {
                 params: {
                     session_id: sessionId
                 }
@@ -104,27 +200,7 @@ export const ChatScreen = (): JSX.Element => {
                 2000
             );
 
-            await oneMsgAtATimeLoader(
-                [
-                    {
-                        type: 'Request Video',
-                        value: '',
-                        direction: 'left',
-                    },
-                ],
-                2000
-            );
-
-            await oneMsgAtATimeLoader(
-                [
-                    {
-                        type: 'Button',
-                        value: '',
-                        direction: 'left',
-                    },
-                ],
-                2000
-            );
+            setVideoFeedbackButtons()
             setFaq(res.data.faq);
         } catch (error) {
             await handleHttpError(data)
@@ -214,7 +290,7 @@ export const ChatScreen = (): JSX.Element => {
                                                     direction: 'left',
                                                 },
                                             ],
-                                            
+
                                         );
                                     }
                                     const f = []
@@ -222,22 +298,22 @@ export const ChatScreen = (): JSX.Element => {
                                         f.push(response.next_question)
                                         setFaq(f)
                                     }
-                                    flag=false;
+                                    flag = false;
                                     break;
                                 } else {
                                     console.log("u")
                                     flag = true;
-                                }   
+                                }
                             }
                         } else {
                             flag = true;
                         }
-                    } 
+                    }
                 } else {
                     flag = true;
                 }
                 console.log(flag)
-                if(flag) {
+                if (flag) {
                     setIsFaqAsked(-1);
                     setFaq([]);
                     await sendRequests(data);
@@ -250,27 +326,6 @@ export const ChatScreen = (): JSX.Element => {
             }
         }
     }
-
-    const welcomeMessage: ChatQuestionType = {
-        text: "hi",
-        responses: [{
-            type: 'Text',
-            value: "Hey there!",
-            linkText: "string",
-        }, {
-            type: 'Text',
-            value: "Thanks for stopping by our legal guidance chat bot.",
-            linkText: "string",
-        }, {
-            type: 'Text',
-            value: "I am very knowleguable and can help you with any legal questions or issues you might be dealing with..",
-            linkText: "string",
-        }, {
-            type: 'Text',
-            value: "Just let us know what's on your mind and we'll do our best to point you in the right direction.",
-            linkText: "string",
-        }]
-    };
 
     const oneMsgAtATimeLoader = (newMsgs: ChatMessageType[], delay = 750): Promise<void> =>
         new Promise<void>((resolve) => {
@@ -313,16 +368,21 @@ export const ChatScreen = (): JSX.Element => {
     };
 
     const handleVideoReq = async () => {
-        const res = await axios.post('https://www.uknowwhoim.me/hosted/legal-project/video', resData);
+        console.log(resData)
+        const res = await axios.post(`${URL}video`, {
+            context: resData
+        }, {
+            params: {
+                session_id: sessionId
+            }
+        });
 
-        console.log(res)
         const msgLoadingTimeout = setTimeout(() => setIsMessageLoading(true));
         const msgs: ChatMessageType[] = [];
 
-        const videos = res.data.message;
+        const videos = JSON.parse(res.data)
 
         for (let i = 0; i < videos.length; i++) {
-
             msgs.push({
                 type: 'Video',
                 value: `https://www.youtube.com${videos[i]}`,
@@ -337,74 +397,124 @@ export const ChatScreen = (): JSX.Element => {
         setIsLoading(false);
     }
 
-    return (
-        <div className="h-screen bg-chat-bg flex flex-col rounded-lg overflow-hidden relative">
-            {/** Chat Window Header */}
-            <ChatHeader isLoading={false} />
-            {/** Chat Container */}
-            <div
-                className="grow flex flex-col gap-2 px-4 pt-6 pb-0 overflow-y-auto"
-                ref={chatWindow}
-            >
-                {/** Welcome Messages */}
-                {welcomeMessage &&
-                    welcomeMessage?.responses.map((item, i) => {
-                        const k = typeof item !== "string" ? `msg-${item.value}-${i}` : "";
-                        return <ChatBubble {...item as ChatResponseType} direction="left" key={k} />
+    const updateSession = async (sessionId: string) => {
+        try {
+            setChatState([])
+            setFaq([])
+            setUpdatePreviousSessions(updatePreviousSessions + 1)
+            setSessionId(sessionId)
+            if (sessionId !== '') {
+                const sessionRes = await axiosInstance.get(`sessions/${sessionId}`);
+
+                sessionRes.data.forEach(async (item: { type: string; data: { content: string }; }, index: string) => {
+                    const { type, data } = item;
+                    const { content } = data;
+
+                    let direction: 'left' | 'right' = "right";
+
+                    if (type === 'ai') {
+                        direction = "left"
                     }
-                    )}
 
-                {/** Chat Messages */}
-                {chatState.map((item, i) => (
-                    <ChatBubble
-                        {...item}
-                        // eslint-disable-next-line react/no-array-index-key
-                        key={`msg-${item.value}-${i}`}
-                        onLoadStarted={() => {
-                            setIsMessageLoading(true);
-                        }}
-                        onLoadCompleted={() => {
-                            setIsMessageLoading(false);
-                        }}
-                        handleFeedback={handleFeedback}
-                        handleVideoReq={handleVideoReq}
-                    />
-                ))}
+                    await oneMsgAtATimeLoader(
+                        [
+                            {
+                                type: 'Text',
+                                value: content,
+                                direction,
+                            },
+                        ],
+                        2000
+                    );
+                })
+            }
+        } catch (e) {
+            toast.error("Couldn't load session", { autoClose: 2000 })
+        }
+    }
 
-                {/** Chat Loading Indicator */}
-                <div
-                    className={clsx(
-                        isMessageLoading && 'flex items-start',
-                        !isMessageLoading && 'hidden'
-                    )}
-                >
-                    <ChatBubble type="Loading" value="" direction="left" />
+    return (
+        <div className="h-screen w-screen bg-chat-bg flex flex-col rounded-lg overflow-hidden">
+            {/** Chat Window Header */}
+            <ChatHeader isLoading={false} signUp={setIsOverlayOpen} isSignedIn={isSignedIn} setIsSignedIn={setIsSignedIn} />
+            <div className='flex-grow grow overflow-y-auto mt-16 mb-16 pb-16'>
+                <PreviousSessions updatePreviousSessions={updatePreviousSessions} updateSession={updateSession} />
+                <div>
+                    {/** Chat Container */}
+                    <div
+                        className="flex flex-col gap-2 px-4 pt-6 pb-0 overflow-y-auto w-2/5 m-auto"
+                        ref={chatWindow}
+                    >
+                        {/** Welcome Messages */}
+                        {welcomeMessage &&
+                            welcomeMessage?.responses.map((item, i) => {
+                                const k = typeof item !== "string" ? `msg-${item.value}-${i}` : "";
+                                return <ChatBubble {...item as ChatResponseType} direction="left" key={k} />
+                            }
+                            )}
+
+                        {/** Chat Messages */}
+                        {chatState.map((item, i) => (
+                            <ChatBubble
+                                {...item}
+                                // eslint-disable-next-line react/no-array-index-key
+                                key={`msg-${item.value}-${i}`}
+                                onLoadStarted={() => {
+                                    setIsMessageLoading(true);
+                                }}
+                                onLoadCompleted={() => {
+                                    setIsMessageLoading(false);
+                                }}
+                                handleFeedback={handleFeedback}
+                                handleVideoReq={handleVideoReq}
+                            />
+                        ))}
+
+                        {/** Chat Loading Indicator */}
+                        <div
+                            className={clsx(
+                                isMessageLoading && 'flex items-start',
+                                !isMessageLoading && 'hidden'
+                            )}
+                        >
+                            <ChatBubble type="Loading" value="" direction="left" />
+                        </div>
+
+                        <span className="my-2" />
+                        <AlwaysScrollToBottom trigger={[chatState.length, isMessageLoading]} />
+                    </div>
+
+                    {/** Chat Footer Action Buttons */}
+                    <div
+                        className={clsx(
+                            'p-5 animate-fade-in-up w-full shadow-md fixed bottom-0 left-0 right-0'
+                        )}
+                        style={{
+                            boxShadow: '0px -4px 16px 0px #0000000D',
+                        }}
+                    >
+                        <div className="w-2/5 m-auto">
+                            {(faq?.length ?? 0) !== 0 &&
+                                <ChatButtons
+                                    key={``}
+                                    questions={faq}
+                                    isLoading={isLoading}
+                                    onClick={(i: number) => handleFaqClick(i)}
+                                />
+                            }
+                            {!recorderControls.isRecording && <Input ref={inputRef} onChange={handleMessageChange} className='float-left w-5/6 xl:mx-4' />}
+                            <div className={clsx(!recorderControls.isRecording && 'float-right xl:mx-4')}>
+                                {message === '' ? <AudioRecorder
+                                    onRecordingComplete={(blob: Blob) => handleAudioData(blob)}
+                                    recorderControls={recorderControls}
+                                    showVisualizer={true}
+                                /> :
+                                    <RoundButton handleClick={handleClick} />}
+                            </div>
+                        </div>
+                        {isOverlayOpen && <SignInUp closeOverlay={toggleOverlay} isSignedIn={setIsSignedIn} />}
+                    </div>
                 </div>
-
-                <span className="my-2" />
-                <AlwaysScrollToBottom trigger={[chatState.length, isMessageLoading]} />
-            </div>
-
-            {/** Chat Footer Action Buttons */}
-            <div
-                className={clsx(
-                    'p-5 animate-fade-in-up'
-                )}
-                style={{
-                    boxShadow: '0px -4px 16px 0px #0000000D',
-                }}
-            >
-                {(faq?.length ?? 0) !== 0 &&
-                    <ChatButtons
-                        key={``}
-                        questions={faq}
-                        isLoading={isLoading}
-                        onClick={(i: number) => handleFaqClick(i)}
-                    />
-                }
-
-                <Input iconAppend={RiSendPlaneFill} ref={inputRef} onClickIconAppend={handleClick} />
-                {isOverlayOpen && <SignInUp closeOverlay={toggleOverlay} />}
             </div>
         </div>
     );

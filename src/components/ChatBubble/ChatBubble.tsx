@@ -1,11 +1,9 @@
 import clsx from 'clsx';
 import { HiExternalLink } from 'react-icons/hi';
 import ReactPlayer from 'react-player';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { ChatMessageType } from 'types';
 import { MessageLoadingIndicator } from 'components';
-
-
 
 export const ChatBubble = ({
     direction = 'left',
@@ -39,8 +37,9 @@ export const ChatBubble = ({
     const renderChatMessage = useMemo(() => {
         switch (type) {
             case 'Text':
-                if (value.length !== 0)
-                    return value;
+                if (typeof value === 'string' && value.length !== 0)  {
+                        return value;
+                } 
                 break;
             case 'Button':
                 return (
@@ -70,7 +69,7 @@ export const ChatBubble = ({
                     <button
                         type="button"
                         className="flex items-center text-blue-900"
-                        onClick={() => window.open(value, '_blank')}
+                        onClick={() => window.open(typeof value === 'string' ? value : '', '_blank')}
                     >
                         <span className="mr-1">{linkText}</span> <HiExternalLink />
                     </button>
@@ -80,7 +79,7 @@ export const ChatBubble = ({
                 onLoadStarted();
                 return (
                     <img
-                        src={value}
+                        src={typeof value === 'string' ? value : ''}
                         alt=""
                         className="rounded-md"
                         onLoad={() => {
@@ -95,7 +94,7 @@ export const ChatBubble = ({
                 return (
                     <div className="rounded-md overflow-hidden">
                         <ReactPlayer
-                            url={value}
+                            url={typeof value === 'string' ? value : ''}
                             width="100%"
                             height="auto"
                             onReady={() => {
@@ -105,6 +104,24 @@ export const ChatBubble = ({
                         />
                     </div>
                 );
+                case 'Audio':
+                    setIsLoadingCompleted(false);
+                    onLoadStarted();
+                    const audioSource = URL.createObjectURL(value as Blob);
+                    return (
+                        <div className="rounded-md overflow-hidden">
+                            <ReactPlayer
+                                url={audioSource}
+                                controls
+                                width="300px"
+                                height="50px"
+                                onReady={() => {
+                                    setIsLoadingCompleted(true);
+                                    onLoadCompleted();
+                                }}
+                            />
+                        </div>
+                    );
             case 'Loading':
                 return <MessageLoadingIndicator />;
             default:

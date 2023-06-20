@@ -1,5 +1,5 @@
 export type ChatResponseType = {
-    type: 'Text' | 'Image' | 'Video' | 'Link' | 'Loading' | 'Button' | 'Request Video';
+    type: 'Text' | 'Image' | 'Video' | 'Link' | 'Loading' | 'Button' | 'Request Video' | 'Audio';
     value: string;
     linkText: string;
     id?: number;
@@ -15,7 +15,7 @@ export type ChatQuestionType = {
 
 export type ChatMessageType = {
     type: ChatResponseType['type'];
-    value: string;
+    value: string | Blob;
     direction: 'left' | 'right';
     linkText?: string;
 };

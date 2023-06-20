@@ -42,11 +42,12 @@ export const Input = forwardRef<Ref, InputFieldProps>(
         const PrependIcon = iconPrepend;
         return (
             <div className="relative">
+                {label && <label className='block'>{label}</label>}
                 <input
                     className={clsx(
                         'px-3 py-3 rounded-md text-sm',
                         'text-black placeholder-gray-400 relative bg-white',
-                        'peer focus:outline-none focus:ring w-full border-2 focus:z-10 hover:border-gray-300 focus:border-gray-400',
+                        'peer focus:outline-none focus:ring border-2 focus:z-10 hover:border-gray-300 focus:border-gray-400',
                         !helperText && !isList && 'mb-2',
                         error && 'mb-1 ring-1 ring-red-600',
                         fullWidth && 'w-full',
