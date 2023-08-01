@@ -12,8 +12,6 @@ import { SignInUp } from 'views/Auth';
 import { RoundButton } from 'components/RoundButton';
 import { welcomeMessage, URL } from 'const/constants';
 import { axiosInstance } from 'config';
-import NProgress from 'nprogress';
-import 'nprogress/nprogress.css';
 
 export const ChatScreen = (): JSX.Element => {
 
@@ -72,38 +70,44 @@ export const ChatScreen = (): JSX.Element => {
     };
 
     const handleAudioData = async (recordedData: Blob) => {
+        console.log("hi")
         try {
+            if(recordedData !== null){
             await addAudioElement(recordedData);
-            if (recordedData) {
-                const formData = new FormData();
-                formData.append('file', recordedData, 'recording.mp3');
-
-                const res = await axiosInstance.post(`chat-audio`, formData, {
-                    headers: {
-                        'Content-Type': 'multipart/form-data',
-                    },
-                });
-                await oneMsgAtATimeLoader(
-                    [
-                        {
-                            type: 'Text',
-                            value: res.data.message,
-                            direction: 'left',
+            if (recordedData) { 
+                    const formData = new FormData();
+                    formData.append('file', recordedData, 'recording.mp3');
+                    const res = await axiosInstance.post(`chat-audio`, formData, {
+                        headers: {
+                            'Content-Type': 'multipart/form-data',
                         },
-                    ],
-                    2000
-                );
-                setSessionId(res.data.session_id)
-                setResData(res.data.message)
-                setVideoFeedbackButtons();
+                        params: {
+                            session_id: sessionId
+                        }
+                    });
+                    await oneMsgAtATimeLoader(
+                        [
+                            {
+                                type: 'Text',
+                                value: res.data.message,
+                                direction: 'left',
+                            },
+                        ],
+                        2000
+                    );
+                    setSessionId(res.data.session_id)
+                    setResData(res.data.message)
+                    setVideoFeedbackButtons();
+                }
+            recorderControls.recordingBlob = undefined;
             }
         } catch (error) {
+            console.log(error)
             toast.error('Unable to send audio', { autoClose: 2000 });
         }
     };
 
     const setVideoFeedbackButtons = async () => {
-        console.log("j")
         await oneMsgAtATimeLoader(
             [
                 {
@@ -493,7 +497,7 @@ export const ChatScreen = (): JSX.Element => {
                             boxShadow: '0px -4px 16px 0px #0000000D',
                         }}
                     >
-                        <div className="w-2/5 m-auto">
+                        <div className="w-3/5 m-auto">
                             {(faq?.length ?? 0) !== 0 &&
                                 <ChatButtons
                                     key={``}
@@ -503,13 +507,13 @@ export const ChatScreen = (): JSX.Element => {
                                 />
                             }
                             {!recorderControls.isRecording && <Input ref={inputRef} onChange={handleMessageChange} className='float-left w-5/6 xl:mx-4' />}
-                            <div className={clsx(!recorderControls.isRecording && 'float-right xl:mx-4')}>
-                                {message === '' ? <AudioRecorder
+                            <div className={clsx(!recorderControls.isRecording && 'flex float-right xl:mx-2')}>
+                                <AudioRecorder
                                     onRecordingComplete={(blob: Blob) => handleAudioData(blob)}
                                     recorderControls={recorderControls}
                                     showVisualizer={true}
-                                /> :
-                                    <RoundButton handleClick={handleClick} />}
+                                /> 
+                                {!recorderControls.isRecording && <RoundButton handleClick={handleClick} />}
                             </div>
                         </div>
                         {isOverlayOpen && <SignInUp closeOverlay={toggleOverlay} isSignedIn={setIsSignedIn} />}
