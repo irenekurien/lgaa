@@ -13,19 +13,6 @@ const LandingPage = () => {
           Start Chat
         </Link>
       </div>
-      <div className="flex justify-center mb-8">
-        <Link to="/lawyer" className="mr-4 text-blue-500 hover:text-blue-600">
-          Create Lawyer Profile
-        </Link>
-        <Link to="/faq" className="text-blue-500 hover:text-blue-600">
-          FAQ
-        </Link>
-      </div>
-      <div className="mb-8">
-        <Link to="/appointment-booking" className="bg-blue-500 hover:bg-blue-600 text-white py-3 px-8 rounded">
-          Book an Appointment
-        </Link>
-      </div>
     </div>
   );
 };
